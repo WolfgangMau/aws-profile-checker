@@ -5,6 +5,8 @@ located in $HOME/.aws/config against aws and proofs if they are
 valid configured.
 there is no really need for this kind of tool, but I just needed an reason for my first golang-coding
 
+[![Build Status](https://travis-ci.org/WolfgangMau/aws-profile-checker.svg?branch=master)](https://travis-ci.org/WolfgangMau/aws-profile-checker)
+
 I provides following copmmandline-options:
 - __-h__ / __-help__ showns the help
 - __-l__ list all profiles wthiout checking them profiles, which needs MFA are colored in red, others are not colored
