@@ -27,7 +27,7 @@ import (
  * -c <name>  => create a new named profile
 **/
 func main() {
-  ex, _ := os.Executable()
+  executable := os.Args[0]
   var all, mfa, nomfa, listonly bool
   var specific, color, create string
   cyellow := "\x1b[33m"
@@ -44,9 +44,8 @@ func main() {
   flag.Parse()
 
   profiles, err := ini.LooseLoad(usr.HomeDir +"/.aws/config")
-  if err != nil {
-    fmt.Println(err)
-  }
+  checkError(err)
+
   profilenames := profiles.SectionStrings()
   sort.Strings(profilenames)
 
@@ -72,7 +71,7 @@ func main() {
           fmt.Printf("%d\t%s", i, padRight(profile," ", 25))
       	   err := check_profile(profile)
            if err != nil {
-             //
+             checkError(err)
            }
          } else {
            if listonly == true {
@@ -88,7 +87,7 @@ func main() {
     }
   }
   if ( (i==0) && (listonly == false) ) || ( (i==0) && (specific != "") ) {
-    fmt.Printf("\n%sno profile matches to the selected options%s\ncheck possible optins with the '-h' flag\ne.g.: %s -h\n", cyellow, coff, ex)
+    fmt.Printf("\n%sno profile matches to the selected options%s\ncheck possible optins with the '-h' flag\ne.g.: %s -h\n", cyellow, coff, executable)
   }
   fmt.Println()
 }
@@ -163,10 +162,10 @@ func mymfa() (string) {
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
-	err := cmd.Run()
-	if err != nil {
-		fmt.Printf("cmd.Run() failed with %s\n", err)
-	}
+
+  err := cmd.Run()
+	checkError(err)
+
 	outStr, _ := string(stdout.Bytes()), string(stderr.Bytes())
   res := AWS_MFA{}
     json.Unmarshal([]byte(outStr), &res)
@@ -206,9 +205,7 @@ func addprofile(profilename, inifilename string, profiles *ini.File) (bool) {
         source_profile = "default"
       }
       _,err := profiles.Section("profile "+ profilename).NewKey("source_profile", strings.Replace(source_profile, "\n", "",  -1))
-      if err != nil {
-        return false
-      }
+      checkError(err)
 
       fmt.Print("type the mfa_serial (leave empty if not needed): ")
       mfa_serial = getUserInput();
@@ -238,4 +235,15 @@ func getUserInput() (string) {
   scanner.Scan() // use `for scanner.Scan()` to keep reading
   line := scanner.Text()
   return strings.Replace(line,"\n","", -1)
+}
+
+/**
+* global error-handler*
+* @param {error} err
+**/
+func checkError(err error) {
+  if err != nil {
+    fmt.Fprintf(os.Stderr, "Fatal error: %s", err.Error())
+    os.Exit(1)
+  }
 }
