@@ -36,7 +36,8 @@ Usage of aws-profile-checker:
   -n string
     	check one named profile
   -nomfa
-    	check only profiles that don´t require MFA```
+    	check only profiles that don´t require MFA
+```
 
 list all profiles
 ```bash
@@ -47,7 +48,8 @@ Bart
 Homer
 Lisa
 Maggie
-Marge```
+Marge
+```
 
 check all profiles
 ```bash
@@ -58,7 +60,8 @@ using config-file: /Users/Moe/.aws/config
 2	Homer                    OK
 3	Lisa                     OK
 4	Maggie                   OK
-5	Marge                    OK```
+5	Marge                    OK
+```
 
 
 check a named profile
@@ -66,4 +69,5 @@ check a named profile
 aws-profile-checker -n Bart
 using config-file: /Users/Moe/.aws/config
 
-1	Bart                     OK```
+1	Bart                     OK
+```
