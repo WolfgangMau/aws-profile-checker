@@ -17,9 +17,14 @@ I provides following copmmandline-options:
 ## dependencies
 * __aws-cli__ (https://github.com/aws/aws-cli)
 * __go__ (https://golang.org/)
+* external go-packages:
+  - github.com/go-ini/ini
+  - github.com/shiena/ansicolor
 
 ## build
-__go build__
+- go get github.com/go-ini/ini
+- go get github.com/shiena/ansicolor
+- __go build__
 
 ## Usage examples:
 
