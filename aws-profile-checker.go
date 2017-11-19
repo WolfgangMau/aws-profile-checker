@@ -283,11 +283,11 @@ func mymfa() (string) {
     return res.MFADevices[0].SerialNumber
 }
 
+/**
+* reads piped accounts into structs
+**/
 func newAccounts() (AWS_ACCOUNT) {
-  input, err := ioutil.ReadAll(os.Stdin)
-  if err != nil {
-
-  }
+  input, _ := ioutil.ReadAll(os.Stdin)
   outStr := string(input)
   res := AWS_ACCOUNT{}
   json.Unmarshal([]byte(outStr), &res)
@@ -334,6 +334,15 @@ func pipedaccount(res AWS_ACCOUNT, profiles *ini.File) {
   }
 }
 
+/**
+* automaticly add profile (without intaction)
+* returns {bool} true on success
+* @param {string} profile_name
+* @param {string} role_arn
+* @param {string} source_profile
+* @param {string} mfa_serial
+* @param {*ini.File} config file
+**/
 func addProfile(profile_name, role_arn, source_profile, mfa_serial string, profiles *ini.File) (bool) {
   _, err := profiles.GetSection("profile "+ profile_name)
   if err == nil {
