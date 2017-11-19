@@ -1,0 +1,22 @@
+{
+    "Accounts": [
+        {
+            "Status": "ACTIVE",
+            "Name": "CamelCased Profile wITh SpaCes1",
+            "Email": "test@home.io",
+            "JoinedMethod": "CREATED",
+            "JoinedTimestamp": 1505313826.226,
+            "Id": "12345678901",
+            "Arn": "arn:aws:organizations::5432112345:account/o-abcdefg/12345678901"
+        },
+        {
+            "Status": "ACTIVE",
+            "Name": "CamelCased Profile wITh SpaCes2",
+            "Email": "test@home.io",
+            "JoinedMethod": "CREATED",
+            "JoinedTimestamp": 1505313826.226,
+            "Id": "12345678901",
+            "Arn": "arn:aws:organizations::5432112345:account/o-abcdefg/12345678901"
+        }
+	]
+}
