@@ -66,6 +66,7 @@ var ConfigFile string
  * -l         => lists only the profilenames (red: MFA, white: no MFA)
  * -n <name>  => checks only this named profile
  * -c <name>  => create a new named profile
+ * -e         => edit a existing profile
 **/
 func main() {
   executable := os.Args[0]

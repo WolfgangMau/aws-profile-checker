@@ -14,6 +14,7 @@ I provides following copmmandline-options:
 - __-mfa__ checks all profiles which need MFA
 - __-nomfa__ checks all profiles which don't need MFA
 - __-a__ checks all profiles
+- __-e__ edit a existing profile
 - __-c <name>__ helps you to create a new named profile
 
 ## dependencies
@@ -77,4 +78,16 @@ aws-profile-checker -n Bart
 using config-file: /Users/Moe/.aws/config
 
 1	Bart                     OK
+```
+
+edit profile
+```bash
+aws-profile-checker -e
+```
+
+bulk add profiles
+```bash
+aws organizations list-accounts | aws-profile-checker
+OR
+cat sample_accounts.json | aws-profile-checker
 ```
