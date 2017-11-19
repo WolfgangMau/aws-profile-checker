@@ -13,7 +13,48 @@ import (
   "sort"
   "flag"
   "bufio"
+  "io/ioutil"
+  "strconv"
 )
+
+/**
+* Structure of the result from 'aws iam list-mfa-devices'
+**/
+type AWS_MFA struct {
+  MFADevices []struct {
+    UserName     string    `json:"UserName"`
+    SerialNumber string    `json:"SerialNumber"`
+    EnableDate   string    `json:"EnableDate"`
+  } `json:"MFADevices"`
+}
+
+/**
+* Structure oa an Account
+**/
+type AWS_ACCOUNT struct {
+	Accounts []struct {
+		Status          string  `json:"Status"`
+		Name            string  `json:"Name"`
+		Email           string  `json:"Email"`
+		JoinedMethod    string  `json:"JoinedMethod"`
+		JoinedTimestamp float64 `json:"JoinedTimestamp"`
+		ID              string  `json:"Id"`
+		Arn             string  `json:"Arn"`
+	} `json:"Accounts"`
+}
+
+/**
+* some colors for the console
+**/
+const cred    string   = "\x1b[31m"
+const cgreen  string   = "\x1b[32m"
+const cyellow string   = "\x1b[33m"
+const coff    string   = "\x1b[0m"
+
+/**
+* global var for the config
+**/
+var ConfigFile string
 
 /**
  * reads all profilenames from $HomeDir/.aws/config
@@ -28,61 +69,114 @@ import (
 **/
 func main() {
   executable := os.Args[0]
-  var all, mfa, nomfa, listonly bool
-  var specific, color, create string
-  cyellow := "\x1b[33m"
-  cred := "\x1b[31m"
-  coff := "\x1b[0m"
+  var all, mfa, nomfa, listonly, pedit bool
+  var specific, pcreate string
   usr, err := user.Current()
 
   flag.BoolVar(&all, "a", false, "check all profiles")
   flag.BoolVar(&mfa, "mfa", false, "check only profiles that require MFA")
   flag.BoolVar(&nomfa, "nomfa", false, "check only profiles that don't require MFA")
   flag.BoolVar(&listonly, "l", false, "only list the profiles")
-  flag.StringVar(&create, "c", "", "create a new named profile")
+  flag.BoolVar(&pedit, "e", false, "edit a profile")
+  flag.StringVar(&pcreate, "c", "", "create a new named profile")
   flag.StringVar(&specific, "n", "", "check one named profile")
   flag.Parse()
 
-  profiles, err := ini.LooseLoad(usr.HomeDir +"/.aws/config")
+  ConfigFile = usr.HomeDir + "/.aws/config"
+  profiles, err := ini.LooseLoad(ConfigFile)
   checkError(err)
 
   profilenames := profiles.SectionStrings()
   sort.Strings(profilenames)
 
-  fmt.Println("using config-file: "+ cyellow + usr.HomeDir +"/.aws/config"+ coff +"\n")
-
-
+  fmt.Println("using config-file: "+ cyellow + ConfigFile + coff +"\n")
 
   i :=0;
-  if create != "" {
-    res := addprofile(create, usr.HomeDir+"/.aws/config", profiles)
+
+  PipedInput, err := os.Stdin.Stat()
+  if err != nil {
+    panic(err)
+  }
+  if PipedInput.Mode() & os.ModeNamedPipe != 0 {
+    i = 1
+    // myAccounts()
+    accoounts := newAccounts()
+    pipedaccount(accoounts, profiles)
+  }
+
+  if listonly == true {
+    listProfiles(profiles)
+    os.Exit(0)
+  }
+  if pedit == true {
+    pn := listProfiles(profiles)
+    fmt.Print("Enter the number of the listed profile you want to edit: ")
+    en := getUserInput()
+    ei,_ := strconv.ParseInt(en, 10, 0)
+    if (ei <= int64(pn)) && (ei > 0) {
+      ep_name := profilenames[ei+1]
+      fmt.Printf("selectd profile: %s%s%s\n",cgreen,ep_name[8:len(ep_name)],coff)
+      keys    := profiles.Section(ep_name).Keys()
+      values  := profiles.Section(ep_name).KeyStrings()
+      hasMFA:=false
+      mfa:=mymfa()
+      for i,k := range keys {
+        if values[i] == "mfa_serial" {
+          hasMFA=true
+          if (k.String() != mfa) {
+            fmt.Printf("%smfa_serial differs from yours!%s\nyours should be: %s\n >",cred,coff,mfa)
+          }
+        }
+        fmt.Printf("new value for %s (leave empty if no change is needed)\ncurrent value: %s\n > ",values[i],k)
+        nKey:=getUserInput()
+        if (nKey == "") {nKey=k.String()}
+        _, err := profiles.Section(ep_name).NewKey(values[i], nKey)
+        if err != nil {
+         fmt.Println(err)
+         os.Exit(1)
+        }
+
+      }
+      if hasMFA == false {
+        fmt.Printf("no mfa_serial found! add yours? (leave empty if not)\nany key to add this: %s > ",mfa)
+        repl_mfa := getUserInput()
+        if repl_mfa != "" {
+          _, err := profiles.Section(ep_name).NewKey("mfa_serial", mfa)
+          if err != nil {
+           fmt.Println(err)
+           os.Exit(1)
+          }
+        }
+      }
+      err = profiles.SaveTo(ConfigFile)
+      if err == nil {
+        fmt.Println("Profile updated.")
+      }
+    } else {
+      fmt.Printf("Error: %d is not betwwen 1 and %d\n",ei, pn)
+      os.Exit(0)
+    }
+  }
+  if pcreate != "" {
+    res := inputProfile(pcreate, profiles)
     if res == true {
-      fmt.Println("prifile "+ create +" has been created.")
+      fmt.Println("prifile "+ pcreate +" has been created.")
     }
     return
   } else {
     for _,name := range profilenames {
 
       if name[0:7] == "profile" {
+        i++
         hasMFA := profiles.Section(name).HasKey("mfa_serial")
         profile := name[8:len(name)]
         if (all == true) || ( (hasMFA == true)  && (mfa == true) ) || ( (hasMFA == false) && (nomfa == true) ) || (profile == specific)  {
-          i++;
           fmt.Printf("%d\t%s", i, padRight(profile," ", 25))
       	   err := check_profile(profile)
            if err != nil {
-             checkError(err)
+             //checkError(err)
            }
-         } else {
-           if listonly == true {
-             if hasMFA == true {
-               color = cred
-             } else {
-               color = coff
-              }
-             fmt.Printf("%s%s%s\n",color, profile, coff)
-           }
-         }
+        }
       }
     }
   }
@@ -92,6 +186,34 @@ func main() {
   fmt.Println()
 }
 
+/**
+* list all profilenames
+* returns (int) number of profiles
+* @param {*ini.Files} profiles
+**/
+func listProfiles(profiles *ini.File) (int) {
+  i:=0
+  var color string
+
+  profilenames := profiles.SectionStrings()
+  sort.Strings(profilenames)
+  for _,name := range profilenames {
+
+    if name[0:7] == "profile" {
+      profile := name[8:len(name)]
+      hasMFA := profiles.Section(name).HasKey("mfa_serial")
+      i++
+      if hasMFA == true {
+        color = cred
+      } else {
+        color = coff
+       }
+      fmt.Printf("%d\t%s%s%s\n",i , color, profile, coff)
+    }
+
+  }
+  return i
+}
 
 /**
  * checks the profile against aws
@@ -100,9 +222,6 @@ func main() {
 **/
 func check_profile(profile string) (error) {
 
-  cred := "\x1b[31m"
-  cgreen := "\x1b[32m"
-  coff := "\x1b[0m"
   toOut := ansicolor.NewAnsiColorWriter(os.Stdout)
 
   cmd := exec.Command("aws", "sts", "get-caller-identity", "--profile", profile)
@@ -150,14 +269,6 @@ func padRight(str, pad string, lenght int) string {
 **/
 func mymfa() (string) {
 
-  type AWS_MFA struct {
-  	MFADevices []struct {
-  		UserName     string    `json:"UserName"`
-  		SerialNumber string    `json:"SerialNumber"`
-  		EnableDate   string    `json:"EnableDate"`
-  	} `json:"MFADevices"`
-  }
-
 	cmd := exec.Command("aws", "iam", "list-mfa-devices")
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -172,6 +283,94 @@ func mymfa() (string) {
     return res.MFADevices[0].SerialNumber
 }
 
+func newAccounts() (AWS_ACCOUNT) {
+  input, err := ioutil.ReadAll(os.Stdin)
+  if err != nil {
+
+  }
+  outStr := string(input)
+  res := AWS_ACCOUNT{}
+  json.Unmarshal([]byte(outStr), &res)
+  return res
+}
+/**
+ * directly add an piped account from json
+**/
+func pipedaccount(res AWS_ACCOUNT, profiles *ini.File) {
+
+	for _,a  := range res.Accounts {
+
+		name := strings.Replace(strings.ToLower(a.Name), " ", "-", -1)
+    // fmt.Print("Enter Profilename (default: "+ name +"): ")
+    // iname := getUserInput()
+    // if (iname != name) && (iname != "")  {name = iname}
+
+    role_arn := "arn:aws:iam::"+ a.ID +":role/role-moia-"+ name +"-account"
+    // fmt.Print("Enter role_arn (default: "+ role_arn +"): ")
+    // irole_arn := getUserInput()
+    // if (irole_arn != role_arn) && (irole_arn != "")  {role_arn = irole_arn}
+
+    source_profile := "default"
+    // fmt.Print("Enter source_profile (default: default): ")
+    // isource_profile:= getUserInput()
+    // if (isource_profile != source_profile) && (isource_profile != "")  {source_profile = isource_profile}
+
+    mfa_serial := mymfa()
+    // fmt.Print("enter any key to add your mfa_serail or leave empty if not necessary: ")
+    // imfa_serial := getUserInput()
+    // if (imfa_serial == "")  {mfa_serial = imfa_serial}
+
+		fmt.Printf("[profile %s]\n", name)
+		fmt.Printf("role_arn = %s\n", role_arn)
+		fmt.Printf("source_profile = %s\nregion = %s\n",source_profile, "eu-central-1")
+    if mfa_serial != "" {
+      fmt.Println("mfa_serial = "+ mfa_serial)
+    }
+    res := addProfile(name, role_arn, source_profile, mfa_serial, profiles)
+    if res == true {
+      fmt.Printf("%sprofile '"+ name +"' successfully added%s\n",cgreen, coff)
+    }
+    fmt.Println()
+  }
+}
+
+func addProfile(profile_name, role_arn, source_profile, mfa_serial string, profiles *ini.File) (bool) {
+  _, err := profiles.GetSection("profile "+ profile_name)
+  if err == nil {
+    fmt.Printf("%sProfile with name '"+ profile_name +"' already exists!%s\n",cred,coff)
+    return false
+  }
+  _,err = profiles.NewSection("profile "+ profile_name)
+  if err != nil {
+    fmt.Printf("sonething went wrong!\n ( error: %s)", err)
+    return false
+  } else {
+    if role_arn != "" {
+      _,err := profiles.Section("profile "+ profile_name).NewKey("role_arn", strings.Replace(role_arn, "\n", "",  -1))
+      if err != nil {
+        return false
+      }
+    }
+    if source_profile != "" {
+      _,err := profiles.Section("profile "+ profile_name).NewKey("source_profile", strings.Replace(source_profile, "\n", "",  -1))
+      if err != nil {
+        return false
+      }
+    }
+    if  mfa_serial != "" {
+      _,err := profiles.Section("profile "+ profile_name).NewKey("mfa_serial", strings.Replace(mfa_serial, "\n", "",  -1))
+      if err != nil {
+        return false
+      }
+    }
+    err = profiles.SaveTo(ConfigFile)
+    if err == nil {
+      return true
+    }
+  }
+  return false
+}
+
 /**
 * add a new profile
 * returns boolean true = success
@@ -179,7 +378,7 @@ func mymfa() (string) {
 * @param {string} configfile usually ~/.aws/config
 * @param {inifile} the current opened innifile
 **/
-func addprofile(profilename, inifilename string, profiles *ini.File) (bool) {
+func inputProfile(profilename string, profiles *ini.File) (bool) {
   profilename = strings.Replace(profilename," ","-", -1)
   _, err := profiles.GetSection("profile"+ profilename)
   if err != nil {
@@ -192,33 +391,14 @@ func addprofile(profilename, inifilename string, profiles *ini.File) (bool) {
 
       fmt.Print("type the role_arn: ")
       role_arn = getUserInput();
-      if role_arn != "" {
-        _,err := profiles.Section("profile "+ profilename).NewKey("role_arn", strings.Replace(role_arn, "\n", "",  -1))
-        if err != nil {
-          return false
-        }
-      }
 
       fmt.Print("type the source_profile (default: default): ")
       source_profile = getUserInput();
-      if source_profile == "" {
-        source_profile = "default"
-      }
-      _,err := profiles.Section("profile "+ profilename).NewKey("source_profile", strings.Replace(source_profile, "\n", "",  -1))
-      checkError(err)
 
       fmt.Print("type the mfa_serial (leave empty if not needed): ")
       mfa_serial = getUserInput();
-      if  mfa_serial != "" {
-        _,err := profiles.Section("profile "+ profilename).NewKey("mfa_serial", strings.Replace(mfa_serial, "\n", "",  -1))
-        if err != nil {
-          return false
-        }
-      }
-      err = profiles.SaveTo(inifilename)
-      if err == nil {
-        return true
-      }
+
+      return addProfile(profilename, role_arn, source_profile, mfa_serial , profiles)
     }
   }else {
     fmt.Println("a Profile with the name '"+profilename+"' already exists!\ncreate aborted!")
@@ -234,7 +414,7 @@ func getUserInput() (string) {
   scanner := bufio.NewScanner(os.Stdin)
   scanner.Scan() // use `for scanner.Scan()` to keep reading
   line := scanner.Text()
-  return strings.Replace(line,"\n","", -1)
+  return strings.Replace(string(line),"\n","", -1)
 }
 
 /**
