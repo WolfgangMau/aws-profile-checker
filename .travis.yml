@@ -31,8 +31,8 @@ notifications:
 # set -e enabled in bash.
 before_script:
   - GO_FILES=$(find . -iname '*.go' -type f | grep -v /vendor/) # All the .go files, excluding vendor/
-  - go get github.com/go-ini/ini                        #  inifile parser
-  - go get github.com/shiena/ansicolor                  #  colored output
+  #- go get github.com/go-ini/ini                        #  inifile parser
+  #- go get github.com/shiena/ansicolor                  #  colored output
 
 # script always run to completion (set +e). All of these code checks are must haves
 # in a modern Go project.
