@@ -1,5 +1,6 @@
 package main
 
+
 /**
 * Structure of the result from 'aws iam list-mfa-devices'
 **/
@@ -24,4 +25,16 @@ type AWS_ACCOUNT struct {
 		ID              string  `json:"Id"`
 		Arn             string  `json:"Arn"`
 	} `json:"Accounts"`
+}
+
+/**
+* Structure of an Credential
+**/
+type AWS_CREDENTIALS struct {
+	Credentials struct {
+		SecretAccessKey string    `json:"SecretAccessKey"`
+		SessionToken    string    `json:"SessionToken"`
+		Expiration      string 	  `json:"Expiration"`
+		AccessKeyID     string    `json:"AccessKeyId"`
+	} `json:"Credentials"`
 }

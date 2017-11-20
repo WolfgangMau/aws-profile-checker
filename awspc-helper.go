@@ -14,10 +14,10 @@ import (
 /**
 * some colors for the console
 **/
-const cred string = "\x1b[31m"
-const cgreen string = "\x1b[32m"
-const cyellow string = "\x1b[33m"
-const coff string = "\x1b[0m"
+const cred  	= "\x1b[31m"
+const cgreen 	= "\x1b[32m"
+const cyellow  	= "\x1b[33m"
+const coff  	= "\x1b[0m"
 
 /**
 * reads piped accounts into structs
