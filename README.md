@@ -20,13 +20,11 @@ I provides following copmmandline-options:
 ## dependencies
 * __aws-cli__ (https://github.com/aws/aws-cli)
 * __go__ (https://golang.org/)
-* external go-packages:
+* external go-packages (provided as submodules):
   - github.com/go-ini/ini
   - github.com/shiena/ansicolor
 
 ## build
-- go get github.com/go-ini/ini
-- go get github.com/shiena/ansicolor
 - __go build__
 
 ## Usage examples:
