@@ -1,0 +1,9 @@
+[submodule "vendor/github.com/go-ini/ini"]
+	path = vendor/github.com/go-ini/ini
+	url = https://github.com/go-ini/ini
+[submodule "vendor/github.com/shiena/ansicolor"]
+	path = vendor/github.com/shiena/ansicolor
+	url = https://github.com/shiena/ansicolor
+[submodule "vendor/github.com/BurntSushi/toml"]
+	path = vendor/github.com/BurntSushi/toml
+	url = https://github.com/BurntSushi/toml
